@@ -1,0 +1,23 @@
+{
+  "name": "wobble-towers",
+  "version": "1.0.0",
+  "description": "A physics-based tower defense game",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "serve -s .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "game",
+    "physics",
+    "tower-defense"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "matter-js": "^0.19.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+} 

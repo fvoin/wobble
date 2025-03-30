@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reload Wobble Towers</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #333;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+        }
+        
+        .button:hover {
+            background-color: #45a049;
+        }
+        
+        .instructions {
+            max-width: 800px;
+            margin: 20px auto;
+            line-height: 1.6;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 5px;
+        }
+    </style>
+    <script>
+        function clearCacheAndReload() {
+            // Clear application cache if supported
+            if (window.applicationCache) {
+                window.applicationCache.update();
+            }
+            
+            // Clear localStorage for this domain
+            localStorage.clear();
+            
+            // Force a hard refresh of the game page
+            window.location.href = 'index.html?nocache=' + new Date().getTime();
+        }
+    </script>
+</head>
+<body>
+    <h1>Wobble Towers - Cache Clearer</h1>
+    
+    <div class="instructions">
+        <p>There seems to be an issue with cached JavaScript files in your browser. This page will help clear your browser cache and reload the game with fresh files.</p>
+        <p>If you're seeing errors about missing functions, this should fix the problem.</p>
+    </div>
+    
+    <button class="button" onclick="clearCacheAndReload()">Clear Cache and Reload Game</button>
+    
+    <div class="instructions">
+        <p>If you still encounter issues after clicking the button above, try these steps:</p>
+        <ol style="text-align: left;">
+            <li>Open your browser's developer tools (F12 or Right-click > Inspect)</li>
+            <li>Go to the Network tab</li>
+            <li>Check "Disable cache" or similar option</li>
+            <li>Refresh the page while developer tools is open</li>
+        </ol>
+    </div>
+    
+    <a class="button" href="index.html">Return to Game Without Clearing Cache</a>
+</body>
+</html> 

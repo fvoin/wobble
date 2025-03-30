@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Wobble Towers</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+        }
+        canvas {
+            display: block;
+            background-color: #333;
+            cursor: pointer;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Make the overlay transparent to mouse events */
+        }
+        .resource-display {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            pointer-events: none;
+        }
+        #next-block-display {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            pointer-events: none;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        #restart-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 15px;
+            background-color: #ff7700;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 100;
+            pointer-events: auto; /* Restore pointer events for this button */
+        }
+        #restart-button:hover {
+            background-color: #ff5500;
+        }
+        
+        /* Block info panel styles */
+        #block-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            width: 250px;
+        }
+        #block-info h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #ffcc00;
+        }
+        .block-type {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 3px;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .block-type.next-block {
+            background-color: rgba(0, 255, 0, 0.3);
+            border: 1px solid #00ff00;
+        }
+        .block-type h4 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #ffcc00;
+        }
+        .block-type p {
+            margin: 5px 0;
+        }
+        .highlight {
+            color: #00ffff;
+        }
+        .block-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+        }
+        .block-details {
+            flex-grow: 1;
+        }
+        .block-name {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .block-cost {
+            color: #ffcc00;
+        }
+        .block-shape {
+            width: 30px;
+            height: 30px;
+        }
+        .plank-shape {
+            width: 30px;
+            height: 8px;
+            background-color: #A0522D;
+        }
+        .square-shape {
+            width: 20px;
+            height: 20px;
+            background-color: #808080;
+        }
+        .l-shape-container {
+            position: relative;
+            width: 30px;
+            height: 30px;
+        }
+        .l-shape {
+            position: absolute;
+            background-color: #C0C0C0;
+        }
+        .l-shape-vertical {
+            width: 10px;
+            height: 20px;
+            left: 5px;
+            top: 5px;
+        }
+        .l-shape-horizontal {
+            width: 20px;
+            height: 10px;
+            left: 5px;
+            top: 15px;
+        }
+        
+        /* Click indicator for debugging */
+        .click-indicator {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 0, 0.5);
+            border: 2px solid yellow;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            pointer-events: none;
+            animation: pulse 0.5s ease-out forwards;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+    </style>
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-overlay">
+            <div class="resource-display">
+                <div id="energy">Energy: <span>0</span></div>
+                <div id="gold">Gold: <span>0</span></div>
+            </div>
+            
+            <!-- Restart button -->
+            <button id="restart-button">RESTART GAME</button>
+            
+            <!-- Next block indicator -->
+            <div id="next-block-display">
+                <h4>Next Block:</h4>
+                <div class="next-block-type">Loading...</div>
+            </div>
+            
+            <!-- Block info panel -->
+            <div id="block-info">
+                <h3>Block Types</h3>
+                
+                <div class="block-type" data-type="plank">
+                    <h4>Plank Block</h4>
+                    <p>Shape: Wide rectangle</p>
+                    <p>Cost: <span class="highlight">5 energy</span></p>
+                    <p>Features: Basic attack, balanced durability</p>
+                </div>
+                
+                <div class="block-type" data-type="square">
+                    <h4>Square Block</h4>
+                    <p>Shape: Square</p>
+                    <p>Cost: <span class="highlight">10 energy</span></p>
+                    <p>Features: <span class="highlight">2x attack speed</span>, good stability</p>
+                </div>
+                
+                <div class="block-type" data-type="L-shape">
+                    <h4>L-shaped Block</h4>
+                    <p>Shape: L-shape</p>
+                    <p>Cost: <span class="highlight">15 energy</span></p>
+                    <p>Features: <span class="highlight">4x health</span>, no weapons, good for structural support</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+    <script>
+        // Track if we're in the middle of a drop to prevent duplicates
+        let isProcessingDrop = false;
+        let lastDropTime = 0;
+        const DROP_COOLDOWN = 500; // ms between drops
+        
+        // Single function to trigger block drops - consolidates all dropping behavior
+        function triggerBlockDrop() {
+            const now = Date.now();
+            
+            // Check if we're in cooldown
+            if (isProcessingDrop || now - lastDropTime < DROP_COOLDOWN) {
+                console.log("Drop cooldown active, ignoring request");
+                return;
+            }
+            
+            console.log("Triggering single block drop");
+            isProcessingDrop = true;
+            lastDropTime = now;
+            
+            try {
+                if (window.gameInstance && window.gameInstance.towerBuilder) {
+                    // Check if the tower builder is already placing a block to prevent duplicate energy consumption
+                    if (window.gameInstance.towerBuilder.isPlacingBlock) {
+                        console.log("Block already being placed, ignoring duplicate request");
+                        isProcessingDrop = false;
+                        return;
+                    }
+                    
+                    // Try various drop methods in order of preference
+                    if (typeof window.gameInstance.towerBuilder.doSimpleDrop === 'function') {
+                        console.log("Using doSimpleDrop method");
+                        window.gameInstance.towerBuilder.doSimpleDrop();
+                    } 
+                    else if (typeof window.forceBlockDrop === 'function') {
+                        console.log("Using global forceBlockDrop function");
+                        window.forceBlockDrop();
+                    }
+                    else if (typeof window.gameInstance.towerBuilder.placeBlock === 'function') {
+                        console.log("Using placeBlock method");
+                        window.gameInstance.towerBuilder.placeBlock();
+                    }
+                    else {
+                        console.warn("No drop method available, trying custom event");
+                        document.dispatchEvent(new CustomEvent('manualBlockDrop'));
+                    }
+                } else {
+                    console.warn("Game instance not ready, dispatching backup event");
+                    document.dispatchEvent(new CustomEvent('manualBlockDrop'));
+                }
+            } catch (e) {
+                console.error("Error during block drop:", e);
+            }
+            
+            // Reset the processing flag after a delay
+            setTimeout(() => {
+                isProcessingDrop = false;
+            }, 300);
+        }
+        
+        // Visual feedback for clicks
+        function showClickIndicator(x, y) {
+            const indicator = document.createElement('div');
+            indicator.className = 'click-indicator';
+            indicator.style.left = x + 'px';
+            indicator.style.top = y + 'px';
+            document.body.appendChild(indicator);
+            
+            // Remove after animation finishes
+            setTimeout(() => {
+                indicator.remove();
+            }, 500);
+        }
+        
+        // Reset all drop tracking when game restarts
+        function resetDropTracking() {
+            console.log("Resetting drop tracking state");
+            isProcessingDrop = false;
+            lastDropTime = 0;
+        }
+        
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM loaded, setting up event handlers");
+            
+            // Setup game container click handler
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                gameContainer.style.cursor = 'pointer';
+                gameContainer.addEventListener('click', function(e) {
+                    console.log('Game container clicked');
+                    showClickIndicator(e.clientX, e.clientY);
+                    triggerBlockDrop();
+                    e.stopPropagation();
+                });
+            }
+            
+            // Setup canvas-specific handlers
+            const canvas = document.getElementById('game-canvas');
+            if (canvas) {
+                // Mouse event on canvas
+                canvas.addEventListener('mousedown', function(e) {
+                    console.log('Canvas mousedown detected');
+                    showClickIndicator(e.clientX, e.clientY);
+                    triggerBlockDrop();
+                    e.stopPropagation();
+                });
+                
+                // Touch event on canvas
+                canvas.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    console.log('Canvas touchstart detected');
+                    if (e.touches && e.touches[0]) {
+                        showClickIndicator(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                    triggerBlockDrop();
+                });
+            }
+            
+            // Set up restart button
+            const restartButton = document.getElementById('restart-button');
+            if (restartButton) {
+                restartButton.addEventListener('click', function(e) {
+                    console.log("Restart button clicked");
+                    e.stopPropagation(); // Prevent this from triggering block drops
+                    
+                    // Reset drop tracking
+                    resetDropTracking();
+                    
+                    if (window.gameInstance && typeof window.gameInstance.restart === 'function') {
+                        window.gameInstance.restart();
+                    } else {
+                        console.warn("No restart method available, reloading page");
+                        window.location.reload();
+                    }
+                });
+            }
+            
+            // Wait for game to initialize
+            setTimeout(() => {
+                if (window.gameInstance) {
+                    console.log("Game instance found");
+                    
+                    // Update UI for next block type
+                    if (window.gameInstance.towerBuilder) {
+                        const nextType = window.gameInstance.towerBuilder.getNextBlockType();
+                        if (nextType) {
+                            const formattedType = nextType.charAt(0).toUpperCase() + nextType.slice(1);
+                            const nextBlockTypeElement = document.querySelector('.next-block-type');
+                            if (nextBlockTypeElement) {
+                                nextBlockTypeElement.textContent = formattedType;
+                            }
+                            
+                            // Highlight correct block type
+                            document.querySelectorAll('.block-type').forEach(el => {
+                                el.classList.remove('next-block');
+                            });
+                            
+                            const nextBlockElement = document.querySelector(`.block-type[data-type="${nextType}"]`);
+                            if (nextBlockElement) {
+                                nextBlockElement.classList.add('next-block');
+                            }
+                        }
+                    }
+                }
+            }, 1000);
+        });
+        
+        // Global event handlers
+        
+        // Prevent default touch behaviors
+        document.addEventListener('touchstart', function(e) {
+            // Only prevent default if not on the restart button
+            if (e.target.id !== 'restart-button') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+        
+        // Space bar for dropping blocks
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' || e.key === ' ') {
+                console.log('Space key pressed');
+                triggerBlockDrop();
+            }
+        });
+    </script>
+</body>
+</html> 
