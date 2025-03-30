@@ -296,6 +296,10 @@ export default class Game {
             existingPopup.remove();
         }
         
+        // Get root element to access CSS variables
+        const root = document.documentElement;
+        const baseUnit = getComputedStyle(root).getPropertyValue('--base-unit').trim() || '1vmin';
+        
         // Create popup element
         const popup = document.createElement('div');
         popup.id = 'game-over-popup';
@@ -305,37 +309,55 @@ export default class Game {
         popup.style.transform = 'translate(-50%, -50%)';
         popup.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
         popup.style.color = 'white';
-        popup.style.padding = '30px';
-        popup.style.borderRadius = '10px';
+        popup.style.padding = 'calc(3 * ' + baseUnit + ')';
+        popup.style.borderRadius = 'calc(1 * ' + baseUnit + ')';
         popup.style.textAlign = 'center';
         popup.style.display = 'none';
         popup.style.zIndex = '1000';
         popup.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
-        popup.style.border = '2px solid #ff0000';
+        popup.style.border = 'calc(0.2 * ' + baseUnit + ') solid #ff0000';
+        popup.style.pointerEvents = 'auto'; // Ensure popup receives events
+        popup.style.minWidth = 'calc(30 * ' + baseUnit + ')';
+        popup.style.maxWidth = '90%';
+        popup.style.fontFamily = 'Arial, sans-serif';
         
         // Add content to popup
         const title = document.createElement('h2');
         title.textContent = 'GAME OVER';
         title.style.color = '#ff0000';
         title.style.marginTop = '0';
-        title.style.fontSize = '32px';
+        title.style.fontSize = 'calc(3 * ' + baseUnit + ')';
+        title.style.marginBottom = 'calc(2 * ' + baseUnit + ')';
         
         const message = document.createElement('p');
         message.textContent = 'An enemy has reached your home!';
-        message.style.fontSize = '16px';
-        message.style.marginBottom = '20px';
+        message.style.fontSize = 'calc(1.6 * ' + baseUnit + ')';
+        message.style.marginBottom = 'calc(2 * ' + baseUnit + ')';
         
         const restartButton = document.createElement('button');
         restartButton.textContent = 'Restart Game';
         restartButton.style.backgroundColor = '#4CAF50';
         restartButton.style.color = 'white';
-        restartButton.style.padding = '12px 24px';
+        restartButton.style.padding = 'calc(1.2 * ' + baseUnit + ') calc(2.4 * ' + baseUnit + ')';
         restartButton.style.border = 'none';
-        restartButton.style.borderRadius = '5px';
+        restartButton.style.borderRadius = 'calc(0.5 * ' + baseUnit + ')';
         restartButton.style.cursor = 'pointer';
-        restartButton.style.fontSize = '16px';
+        restartButton.style.fontSize = 'calc(1.6 * ' + baseUnit + ')';
+        restartButton.style.webkitTapHighlightColor = 'rgba(76, 175, 80, 0.5)'; // Visual feedback for taps
+        restartButton.style.touchAction = 'manipulation'; // Optimize for touch
         
-        // Add hover effect
+        // Add event listener to update sizes when CSS variables change
+        window.addEventListener('resize', () => {
+            const updatedBaseUnit = getComputedStyle(root).getPropertyValue('--base-unit').trim() || '1vmin';
+            title.style.fontSize = 'calc(3 * ' + updatedBaseUnit + ')';
+            message.style.fontSize = 'calc(1.6 * ' + updatedBaseUnit + ')';
+            restartButton.style.fontSize = 'calc(1.6 * ' + updatedBaseUnit + ')';
+            restartButton.style.padding = 'calc(1.2 * ' + updatedBaseUnit + ') calc(2.4 * ' + updatedBaseUnit + ')';
+            popup.style.padding = 'calc(3 * ' + updatedBaseUnit + ')';
+            popup.style.minWidth = 'calc(30 * ' + updatedBaseUnit + ')';
+        });
+        
+        // Add hover and active states 
         restartButton.onmouseover = function() {
             this.style.backgroundColor = '#45a049';
         };
@@ -343,8 +365,42 @@ export default class Game {
             this.style.backgroundColor = '#4CAF50';
         };
         
-        // Add restart functionality
-        restartButton.addEventListener('click', this.restart);
+        // Add active state for touch/mouse feedback
+        restartButton.onmousedown = function() { 
+            this.style.backgroundColor = '#367c39';
+            this.style.transform = 'scale(0.98)';
+        };
+        restartButton.onmouseup = function() {
+            this.style.backgroundColor = '#45a049';
+            this.style.transform = 'scale(1)';
+        };
+        
+        // Add restart functionality for click
+        restartButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.restart();
+        });
+        
+        // Add touch event handlers specifically for mobile
+        restartButton.addEventListener('touchstart', (e) => {
+            console.log("Game over restart button touched");
+            // Don't prevent default to allow button behavior
+            restartButton.style.backgroundColor = '#367c39';
+            restartButton.style.transform = 'scale(0.98)';
+        });
+        
+        restartButton.addEventListener('touchend', (e) => {
+            console.log("Game over restart button touch ended");
+            e.preventDefault();
+            e.stopPropagation();
+            
+            restartButton.style.backgroundColor = '#4CAF50';
+            restartButton.style.transform = 'scale(1)';
+            
+            // Restart the game
+            this.restart();
+        });
         
         // Assemble popup
         popup.appendChild(title);
@@ -352,10 +408,12 @@ export default class Game {
         popup.appendChild(restartButton);
         
         // Add to document
-        const gameContainer = document.getElementById('game-container');
-        gameContainer.appendChild(popup);
+        document.body.appendChild(popup);
         
+        // Store reference to popup
         this.gameOverPopup = popup;
+        
+        return popup;
     }
     
     restart() {
