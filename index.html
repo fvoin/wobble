@@ -6,6 +6,15 @@
     <title>Wobble Towers</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏰</text></svg>">
     <style>
+        :root {
+            /* Base size variables for scaling - will be adjusted by JS */
+            --base-unit: 1vmin;
+            --font-size-base: calc(1.4 * var(--base-unit));
+            --spacing-unit: calc(1 * var(--base-unit));
+            --button-padding: calc(1.2 * var(--base-unit)) calc(1.8 * var(--base-unit));
+            --ui-scale: 1;
+        }
+        
         body {
             margin: 0;
             padding: 0;
@@ -16,7 +25,10 @@
             background-color: #222;
             overflow: hidden;
             touch-action: none;
+            font-family: Arial, sans-serif;
+            font-size: var(--font-size-base);
         }
+        
         #game-container {
             position: relative;
             width: 100%;
@@ -25,6 +37,7 @@
             justify-content: center;
             align-items: center;
         }
+        
         canvas {
             display: block;
             background-color: #333;
@@ -35,6 +48,7 @@
             height: auto;
             object-fit: contain;
         }
+        
         #ui-overlay {
             position: absolute;
             top: 0;
@@ -42,146 +56,120 @@
             width: 100%;
             height: 100%;
             pointer-events: none; /* Make the overlay transparent to mouse events */
+            font-size: var(--font-size-base);
         }
+        
         .resource-display {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: calc(1 * var(--spacing-unit));
+            left: calc(1 * var(--spacing-unit));
             color: white;
-            font-family: Arial, sans-serif;
             pointer-events: none;
+            font-size: calc(1.1 * var(--font-size-base));
         }
+        
         #next-block-display {
             position: absolute;
-            top: 60px;
-            left: 10px;
+            top: calc(6 * var(--spacing-unit));
+            left: calc(1 * var(--spacing-unit));
             color: white;
-            font-family: Arial, sans-serif;
             pointer-events: none;
             background-color: rgba(0, 0, 0, 0.5);
-            padding: 5px 10px;
-            border-radius: 3px;
+            padding: calc(0.5 * var(--spacing-unit)) calc(1 * var(--spacing-unit));
+            border-radius: calc(0.3 * var(--spacing-unit));
+            font-size: calc(1 * var(--font-size-base));
         }
+        
+        #next-block-display h4 {
+            margin: calc(0.3 * var(--spacing-unit)) 0;
+            font-size: calc(1.1 * var(--font-size-base));
+        }
+        
         #restart-button {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 10px 15px;
+            top: calc(1 * var(--spacing-unit));
+            right: calc(1 * var(--spacing-unit));
+            padding: var(--button-padding);
             background-color: #ff7700;
             color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 14px;
+            border-radius: calc(0.5 * var(--spacing-unit));
+            font-size: calc(1.1 * var(--font-size-base));
             cursor: pointer;
             z-index: 100;
             pointer-events: auto; /* Restore pointer events for this button */
+            -webkit-tap-highlight-color: rgba(255, 119, 0, 0.5); /* Add visual feedback for taps */
+            touch-action: manipulation; /* Optimize for touch */
         }
+        
         #restart-button:hover {
             background-color: #ff5500;
+        }
+        
+        #restart-button:active, #restart-button.active {
+            background-color: #cc4400; /* Darker color when pressed */
+            transform: scale(0.98); /* Slight scale effect when pressed */
         }
         
         /* Block info panel styles */
         #block-info {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: calc(1 * var(--spacing-unit));
+            right: calc(1 * var(--spacing-unit));
             background-color: rgba(0, 0, 0, 0.7);
             color: white;
-            border-radius: 5px;
-            padding: 15px;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            width: 250px;
+            border-radius: calc(0.5 * var(--spacing-unit));
+            padding: calc(1.5 * var(--spacing-unit));
+            font-size: calc(1 * var(--font-size-base));
+            width: calc(25 * var(--spacing-unit));
+            max-width: calc(35% - 2 * var(--spacing-unit)); /* Limit width as percentage of container */
+            transition: all 0.3s ease; /* Smooth transition when resizing */
         }
+        
         #block-info h3 {
             margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 16px;
+            margin-bottom: calc(1 * var(--spacing-unit));
+            font-size: calc(1.2 * var(--font-size-base));
             color: #ffcc00;
         }
+        
         .block-type {
-            margin-bottom: 10px;
-            padding: 5px;
-            border-radius: 3px;
+            margin-bottom: calc(1 * var(--spacing-unit));
+            padding: calc(0.5 * var(--spacing-unit));
+            border-radius: calc(0.3 * var(--spacing-unit));
             background-color: rgba(255, 255, 255, 0.1);
         }
+        
         .block-type.next-block {
             background-color: rgba(0, 255, 0, 0.3);
-            border: 1px solid #00ff00;
+            border: calc(0.1 * var(--spacing-unit)) solid #00ff00;
         }
+        
         .block-type h4 {
             margin-top: 0;
-            margin-bottom: 5px;
+            margin-bottom: calc(0.5 * var(--spacing-unit));
             color: #ffcc00;
+            font-size: calc(1.1 * var(--font-size-base));
         }
+        
         .block-type p {
-            margin: 5px 0;
+            margin: calc(0.5 * var(--spacing-unit)) 0;
+            font-size: calc(0.9 * var(--font-size-base));
+            line-height: 1.3;
         }
+        
         .highlight {
             color: #00ffff;
-        }
-        .block-icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-right: 10px;
-        }
-        .block-details {
-            flex-grow: 1;
-        }
-        .block-name {
-            font-weight: bold;
-            margin-bottom: 3px;
-        }
-        .block-cost {
-            color: #ffcc00;
-        }
-        .block-shape {
-            width: 30px;
-            height: 30px;
-        }
-        .plank-shape {
-            width: 30px;
-            height: 8px;
-            background-color: #A0522D;
-        }
-        .square-shape {
-            width: 20px;
-            height: 20px;
-            background-color: #808080;
-        }
-        .l-shape-container {
-            position: relative;
-            width: 30px;
-            height: 30px;
-        }
-        .l-shape {
-            position: absolute;
-            background-color: #C0C0C0;
-        }
-        .l-shape-vertical {
-            width: 10px;
-            height: 20px;
-            left: 5px;
-            top: 5px;
-        }
-        .l-shape-horizontal {
-            width: 20px;
-            height: 10px;
-            left: 5px;
-            top: 15px;
         }
         
         /* Click indicator for debugging */
         .click-indicator {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: calc(2 * var(--spacing-unit));
+            height: calc(2 * var(--spacing-unit));
             border-radius: 50%;
             background-color: rgba(255, 255, 0, 0.5);
-            border: 2px solid yellow;
+            border: calc(0.2 * var(--spacing-unit)) solid yellow;
             transform: translate(-50%, -50%);
             z-index: 1000;
             pointer-events: none;
@@ -192,31 +180,36 @@
             0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
             100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
         }
-
-        /* Media queries for better mobile responsiveness */
+        
+        /* Screen size adjustments */
         @media (max-width: 768px) {
-            #block-info {
-                width: 200px;
-                font-size: 12px;
-                padding: 10px;
+            :root {
+                --ui-scale: 0.85;
             }
             
-            #restart-button {
-                padding: 8px 12px;
-                font-size: 12px;
+            #block-info {
+                top: calc(7 * var(--spacing-unit));  /* Move below restart button */
             }
         }
         
         @media (max-width: 480px) {
-            #block-info {
-                width: 150px;
-                font-size: 10px;
-                padding: 8px;
+            :root {
+                --ui-scale: 0.7;
             }
             
-            #restart-button {
-                padding: 6px 10px;
-                font-size: 11px;
+            #block-info {
+                max-width: calc(45% - 2 * var(--spacing-unit));
+            }
+        }
+        
+        @media (max-height: 480px) {
+            :root {
+                --ui-scale: 0.7;
+            }
+            
+            #block-info {
+                max-height: 60vh;
+                overflow-y: auto;
             }
         }
     </style>
@@ -364,9 +357,37 @@
             lastDropTime = 0;
         }
         
+        // Update UI scaling based on screen size
+        function updateUIScaling() {
+            const root = document.documentElement;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // Base scale on the smallest dimension
+            const minDimension = Math.min(width, height);
+            
+            // Calculate scale factor - adjust these thresholds as needed
+            let uiScale = 1;
+            
+            if (minDimension < 480) {
+                uiScale = 0.7;
+            } else if (minDimension < 768) {
+                uiScale = 0.85;
+            }
+            
+            // Update CSS variable for scaling
+            root.style.setProperty('--ui-scale', uiScale);
+            root.style.setProperty('--base-unit', (minDimension / 100) * uiScale + 'px');
+            
+            console.log(`UI scaling updated: ${uiScale.toFixed(2)}, base unit: ${(minDimension / 100).toFixed(1)}px`);
+        }
+        
         // Wait for DOM to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             console.log("DOM loaded, setting up event handlers");
+            
+            // Initial UI scaling
+            updateUIScaling();
             
             // Setup game container click handler
             const gameContainer = document.getElementById('game-container');
@@ -434,9 +455,38 @@
             // Set up restart button
             const restartButton = document.getElementById('restart-button');
             if (restartButton) {
+                // For mouse clicks
                 restartButton.addEventListener('click', function(e) {
                     console.log("Restart button clicked");
                     e.stopPropagation(); // Prevent this from triggering block drops
+                    
+                    // Reset drop tracking
+                    resetDropTracking();
+                    
+                    if (window.gameInstance && typeof window.gameInstance.restart === 'function') {
+                        window.gameInstance.restart();
+                    } else {
+                        console.warn("No restart method available, reloading page");
+                        window.location.reload();
+                    }
+                });
+                
+                // Specifically for touch devices
+                restartButton.addEventListener('touchstart', function(e) {
+                    // Don't prevent default here to allow button behavior
+                    console.log("Restart button touched");
+                    
+                    // Add active state visual feedback
+                    restartButton.classList.add('active');
+                });
+                
+                restartButton.addEventListener('touchend', function(e) {
+                    console.log("Restart button touch ended");
+                    e.preventDefault(); // Prevent mousedown event
+                    e.stopPropagation(); // Prevent this from triggering block drops
+                    
+                    // Remove active state
+                    restartButton.classList.remove('active');
                     
                     // Reset drop tracking
                     resetDropTracking();
@@ -485,7 +535,7 @@
         // Prevent default touch behaviors
         document.addEventListener('touchstart', function(e) {
             // Only prevent default if not on the restart button
-            if (e.target.id !== 'restart-button') {
+            if (e.target.id !== 'restart-button' && !e.target.closest('#restart-button')) {
                 e.preventDefault();
             }
         }, { passive: false });
@@ -542,6 +592,9 @@
             canvasScaleY = newHeight / targetHeight;
             
             console.log(`Game resized: ${newWidth}x${newHeight}, scale: ${canvasScaleX.toFixed(2)}x${canvasScaleY.toFixed(2)}`);
+            
+            // Update UI scaling when game is resized
+            updateUIScaling();
         }
         
         // Convert page coordinates to canvas coordinates
