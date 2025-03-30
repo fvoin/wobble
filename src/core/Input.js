@@ -19,6 +19,10 @@ export default class Input {
         // Add a direct drop request flag
         this.dropRequested = false;
         
+        // Scale factors for input handling
+        this.scaleX = 1.0;
+        this.scaleY = 1.0;
+        
         // Debug
         this.lastEvent = null;
         
@@ -72,25 +76,68 @@ export default class Input {
         }, 100);
     }
     
+    // Update scale factors based on canvas display vs. actual size
+    updateScaleFactors() {
+        if (!this.canvas) return;
+        
+        const actualWidth = this.canvas.width;
+        const actualHeight = this.canvas.height;
+        const displayWidth = this.canvas.clientWidth;
+        const displayHeight = this.canvas.clientHeight;
+        
+        // Calculate scale factors
+        this.scaleX = actualWidth / displayWidth;
+        this.scaleY = actualHeight / displayHeight;
+        
+        if (this.scaleX !== 1 || this.scaleY !== 1) {
+            console.log(`Canvas scale factors updated: ${this.scaleX.toFixed(2)}x, ${this.scaleY.toFixed(2)}y`);
+        }
+    }
+    
+    // Convert display coordinates to canvas coordinates
+    getCanvasCoordinates(clientX, clientY) {
+        if (!this.canvas) return { x: 0, y: 0 };
+        
+        const rect = this.canvas.getBoundingClientRect();
+        // First get position relative to canvas display size
+        const relativeX = clientX - rect.left;
+        const relativeY = clientY - rect.top;
+        
+        // Then adjust for any scaling between display size and canvas resolution
+        return {
+            x: relativeX * this.scaleX,
+            y: relativeY * this.scaleY
+        };
+    }
+    
     handleMouseMove(event) {
         if (!this.canvas) return;
         
-        const rect = this.canvas.getBoundingClientRect();
-        this.mouseX = event.clientX - rect.left;
-        this.mouseY = event.clientY - rect.top;
+        this.updateScaleFactors();
+        const coords = this.getCanvasCoordinates(event.clientX, event.clientY);
+        this.mouseX = coords.x;
+        this.mouseY = coords.y;
         this.lastEvent = "mousemove";
     }
     
     handleMouseDown(event) {
         console.log(`Mouse down detected at (${event.clientX}, ${event.clientY})`);
+        this.updateScaleFactors();
+        const coords = this.getCanvasCoordinates(event.clientX, event.clientY);
+        this.mouseX = coords.x;
+        this.mouseY = coords.y;
         this.isMouseDown = true;
         this.isMousePressed = true;
         this.lastEvent = "mousedown";
-        console.log("Mouse down event processed: isMouseDown set to true");
+        console.log(`Mouse down processed: (${coords.x.toFixed(1)}, ${coords.y.toFixed(1)})`);
     }
     
     handleMouseUp(event) {
         console.log(`Mouse up detected at (${event.clientX}, ${event.clientY})`);
+        this.updateScaleFactors();
+        const coords = this.getCanvasCoordinates(event.clientX, event.clientY);
+        this.mouseX = coords.x;
+        this.mouseY = coords.y;
         this.isMouseDown = false;
         this.isMouseReleased = true;
         this.lastEvent = "mouseup";
@@ -99,10 +146,14 @@ export default class Input {
     
     handleClick(event) {
         console.log(`Click detected at (${event.clientX}, ${event.clientY})`);
+        this.updateScaleFactors();
+        const coords = this.getCanvasCoordinates(event.clientX, event.clientY);
+        this.mouseX = coords.x;
+        this.mouseY = coords.y;
         // Set the drop request flag on direct click
         this.dropRequested = true;
         this.lastEvent = "click";
-        console.log("Click event processed: dropRequested set to true");
+        console.log(`Click processed at canvas coord: (${coords.x.toFixed(1)}, ${coords.y.toFixed(1)})`);
     }
     
     handleTouchStart(event) {
@@ -115,11 +166,12 @@ export default class Input {
         this.isMousePressed = true;
         
         const touch = event.touches[0];
-        const rect = this.canvas.getBoundingClientRect();
-        this.mouseX = touch.clientX - rect.left;
-        this.mouseY = touch.clientY - rect.top;
+        this.updateScaleFactors();
+        const coords = this.getCanvasCoordinates(touch.clientX, touch.clientY);
+        this.mouseX = coords.x;
+        this.mouseY = coords.y;
         this.lastEvent = "touchstart";
-        console.log("Touch start event detected");
+        console.log(`Touch start at canvas coord: (${coords.x.toFixed(1)}, ${coords.y.toFixed(1)})`);
     }
     
     handleTouchMove(event) {
@@ -128,9 +180,10 @@ export default class Input {
         event.preventDefault();
         
         const touch = event.touches[0];
-        const rect = this.canvas.getBoundingClientRect();
-        this.mouseX = touch.clientX - rect.left;
-        this.mouseY = touch.clientY - rect.top;
+        this.updateScaleFactors();
+        const coords = this.getCanvasCoordinates(touch.clientX, touch.clientY);
+        this.mouseX = coords.x;
+        this.mouseY = coords.y;
         this.lastEvent = "touchmove";
     }
     

@@ -19,11 +19,21 @@
         }
         #game-container {
             position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         canvas {
             display: block;
             background-color: #333;
             cursor: pointer;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
         }
         #ui-overlay {
             position: absolute;
@@ -182,6 +192,33 @@
             0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
             100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
         }
+
+        /* Media queries for better mobile responsiveness */
+        @media (max-width: 768px) {
+            #block-info {
+                width: 200px;
+                font-size: 12px;
+                padding: 10px;
+            }
+            
+            #restart-button {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #block-info {
+                width: 150px;
+                font-size: 10px;
+                padding: 8px;
+            }
+            
+            #restart-button {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+        }
     </style>
     <!-- Matter.js Physics Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -296,9 +333,23 @@
         function showClickIndicator(x, y) {
             const indicator = document.createElement('div');
             indicator.className = 'click-indicator';
-            indicator.style.left = x + 'px';
-            indicator.style.top = y + 'px';
-            document.body.appendChild(indicator);
+            
+            // Position relative to the game container for correct placement
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) {
+                const rect = gameContainer.getBoundingClientRect();
+                const relativeX = x - rect.left;
+                const relativeY = y - rect.top;
+                
+                indicator.style.left = relativeX + 'px';
+                indicator.style.top = relativeY + 'px';
+                gameContainer.appendChild(indicator);
+            } else {
+                // Fallback to body if container not found
+                indicator.style.left = x + 'px';
+                indicator.style.top = y + 'px';
+                document.body.appendChild(indicator);
+            }
             
             // Remove after animation finishes
             setTimeout(() => {
@@ -324,6 +375,13 @@
                 gameContainer.addEventListener('click', function(e) {
                     console.log('Game container clicked');
                     showClickIndicator(e.clientX, e.clientY);
+                    
+                    // Pass canvas coordinates to the game if needed
+                    if (window.gameInstance && window.gameInstance.towerBuilder) {
+                        const canvasCoords = getCanvasCoordinates(e.clientX, e.clientY);
+                        window.gameInstance.towerBuilder.lastClickPosition = canvasCoords;
+                    }
+                    
                     triggerBlockDrop();
                     e.stopPropagation();
                 });
@@ -336,6 +394,16 @@
                 canvas.addEventListener('mousedown', function(e) {
                     console.log('Canvas mousedown detected');
                     showClickIndicator(e.clientX, e.clientY);
+                    
+                    // Convert to proper canvas coordinates
+                    const canvasCoords = getCanvasCoordinates(e.clientX, e.clientY);
+                    console.log(`Canvas coordinates: ${canvasCoords.x.toFixed(1)}, ${canvasCoords.y.toFixed(1)}`);
+                    
+                    // Store click position for use in the game
+                    if (window.gameInstance && window.gameInstance.towerBuilder) {
+                        window.gameInstance.towerBuilder.lastClickPosition = canvasCoords;
+                    }
+                    
                     triggerBlockDrop();
                     e.stopPropagation();
                 });
@@ -344,9 +412,21 @@
                 canvas.addEventListener('touchstart', function(e) {
                     e.preventDefault();
                     console.log('Canvas touchstart detected');
+                    
                     if (e.touches && e.touches[0]) {
-                        showClickIndicator(e.touches[0].clientX, e.touches[0].clientY);
+                        const touch = e.touches[0];
+                        showClickIndicator(touch.clientX, touch.clientY);
+                        
+                        // Convert to proper canvas coordinates
+                        const canvasCoords = getCanvasCoordinates(touch.clientX, touch.clientY);
+                        console.log(`Canvas touch coordinates: ${canvasCoords.x.toFixed(1)}, ${canvasCoords.y.toFixed(1)}`);
+                        
+                        // Store touch position for use in the game
+                        if (window.gameInstance && window.gameInstance.towerBuilder) {
+                            window.gameInstance.towerBuilder.lastClickPosition = canvasCoords;
+                        }
                     }
+                    
                     triggerBlockDrop();
                 });
             }
@@ -420,6 +500,74 @@
                 console.log('Space key pressed');
                 triggerBlockDrop();
             }
+        });
+
+        // Canvas and UI scaling variables
+        let canvasScaleX = 1;
+        let canvasScaleY = 1;
+        let gameCanvas = document.getElementById('game-canvas');
+        
+        // Function to handle window resizing and mobile rotation
+        function resizeGame() {
+            if (!window.gameInstance) return;
+            
+            const gameContainer = document.getElementById('game-container');
+            const containerWidth = gameContainer.clientWidth;
+            const containerHeight = gameContainer.clientHeight;
+            
+            // Target aspect ratio (from the original game canvas)
+            const targetWidth = window.gameInstance.canvas.width;
+            const targetHeight = window.gameInstance.canvas.height;
+            const targetRatio = targetWidth / targetHeight;
+            
+            // Calculate scale based on container dimensions
+            let newWidth, newHeight;
+            
+            if (containerWidth / containerHeight > targetRatio) {
+                // Container is wider than the target ratio
+                newHeight = Math.min(containerHeight, targetHeight);
+                newWidth = newHeight * targetRatio;
+            } else {
+                // Container is taller than the target ratio
+                newWidth = Math.min(containerWidth, targetWidth);
+                newHeight = newWidth / targetRatio;
+            }
+            
+            // Set canvas display size (CSS)
+            gameCanvas.style.width = newWidth + 'px';
+            gameCanvas.style.height = newHeight + 'px';
+            
+            // Calculate scale factors
+            canvasScaleX = newWidth / targetWidth;
+            canvasScaleY = newHeight / targetHeight;
+            
+            console.log(`Game resized: ${newWidth}x${newHeight}, scale: ${canvasScaleX.toFixed(2)}x${canvasScaleY.toFixed(2)}`);
+        }
+        
+        // Convert page coordinates to canvas coordinates
+        function getCanvasCoordinates(pageX, pageY) {
+            const rect = gameCanvas.getBoundingClientRect();
+            
+            // Calculate coordinates relative to the canvas
+            const relativeX = (pageX - rect.left) / canvasScaleX;
+            const relativeY = (pageY - rect.top) / canvasScaleY;
+            
+            return { x: relativeX, y: relativeY };
+        }
+        
+        // Initial resize when game loads
+        window.addEventListener('load', function() {
+            if (window.gameInstance) {
+                // Make sure to resize after the game is initialized
+                setTimeout(resizeGame, 100);
+            }
+        });
+        
+        // Resize when window size changes or device orientation changes
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('orientationchange', function() {
+            // Delay resize slightly to allow orientation change to complete
+            setTimeout(resizeGame, 200);
         });
     </script>
 </body>
