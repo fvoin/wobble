@@ -334,6 +334,11 @@ export default class Game {
         restartButton.style.borderRadius = '5px';
         restartButton.style.cursor = 'pointer';
         restartButton.style.fontSize = '16px';
+        // Add mobile touch optimization
+        restartButton.style.pointerEvents = 'auto';
+        restartButton.style.webkitTapHighlightColor = 'rgba(0, 0, 0, 0)';
+        restartButton.style.touchAction = 'manipulation';
+        restartButton.style.userSelect = 'none';
         
         // Add hover effect
         restartButton.onmouseover = function() {
@@ -343,8 +348,19 @@ export default class Game {
             this.style.backgroundColor = '#4CAF50';
         };
         
-        // Add restart functionality
-        restartButton.addEventListener('click', this.restart);
+        // FIXED: Use the same pattern for click as we do for touch events
+        restartButton.addEventListener('click', (e) => {
+            console.log("Game over popup restart button clicked");
+            e.stopPropagation();
+            
+            // Use global game instance to restart
+            if (window.gameInstance && typeof window.gameInstance.restart === 'function') {
+                window.gameInstance.restart();
+            } else {
+                console.warn("No restart method available in popup, trying fallback");
+                window.location.reload();
+            }
+        });
         
         // Add touch event handlers for mobile devices
         restartButton.addEventListener('touchstart', (e) => {
@@ -360,8 +376,13 @@ export default class Game {
             // Reset visual appearance
             restartButton.style.backgroundColor = '#4CAF50';
             restartButton.style.transform = 'scale(1)';
-            // Call restart
-            this.restart();
+            // FIXED: Use window.gameInstance.restart() instead of this.restart()
+            if (window.gameInstance && typeof window.gameInstance.restart === 'function') {
+                window.gameInstance.restart();
+            } else {
+                console.warn("No restart method available in popup, trying fallback");
+                window.location.reload();
+            }
         });
         
         // Assemble popup
