@@ -87,6 +87,7 @@ export default class TowerBlock {
             // Create a physics body using Matter.js based on shape
             if (this.blockType === 'L-shape') {
                 // Create L-shaped body by combining two rectangles
+                // Main part adjusted to sit more accurately on the ground
                 const mainPart = Matter.Bodies.rectangle(
                     this.x - this.width/4, 
                     this.y, 
@@ -94,9 +95,11 @@ export default class TowerBlock {
                     this.height,
                     {
                         label: 'towerBlock',
-                        density: this.getDensity(),
-                        friction: this.getFriction(),
-                        restitution: this.getRestitution()
+                        density: this.getDensity() * 1.5, // Extra density for L-shape for stability
+                        friction: this.getFriction() * 1.3, // Higher friction for L-shape
+                        restitution: this.getRestitution() * 0.8, // Lower bounciness
+                        frictionAir: 0.03, // Higher air friction to reduce sliding
+                        frictionStatic: 0.8 // Higher static friction to prevent sliding
                     }
                 );
                 
@@ -107,17 +110,25 @@ export default class TowerBlock {
                     this.height/2,
                     {
                         label: 'towerBlock',
-                        density: this.getDensity(),
-                        friction: this.getFriction(),
-                        restitution: this.getRestitution()
+                        density: this.getDensity() * 1.5, // Extra density for L-shape for stability
+                        friction: this.getFriction() * 1.3, // Higher friction for L-shape
+                        restitution: this.getRestitution() * 0.8, // Lower bounciness
+                        frictionAir: 0.03, // Higher air friction to reduce sliding
+                        frictionStatic: 0.8 // Higher static friction to prevent sliding
                     }
                 );
                 
-                // Combine the two parts into a compound body
+                // Create the compound body
                 this.body = Matter.Body.create({
                     parts: [mainPart, sidePart],
-                    label: 'towerBlock'
+                    label: 'towerBlock',
+                    frictionStatic: 0.8, // Higher static friction
+                    sleepThreshold: 10  // Lower sleep threshold to stabilize quicker
                 });
+                
+                // Fine-tune the position to match visual representation better
+                // Adjust the body position slightly to better align with the visual representation
+                Matter.Body.translate(this.body, { x: -this.width/12, y: this.height/16 });
                 
                 // Store the vertices of the L-shape for drawing
                 this.vertices = [
@@ -136,16 +147,22 @@ export default class TowerBlock {
                 // Create rectangular bodies for plank and square
                 this.body = Matter.Bodies.rectangle(this.x, this.y, this.width, this.height, {
                     label: 'towerBlock',
-                    density: this.getDensity(),
+                    density: this.getDensity() * 1.2, // Slightly increased density for stability
                     friction: this.getFriction(),
-                    restitution: this.getRestitution()
+                    restitution: this.getRestitution() * 0.9, // Slightly lower bounciness
+                    frictionAir: 0.02, // Increased air friction to reduce sliding
+                    frictionStatic: 0.6 // Add static friction
                 });
                 
-                // Set cannon position based on block type
+                // Apply a very minor adjustment to align physics body with visual representation
                 if (this.blockType === 'square') {
+                    // Square blocks need minimal adjustment
+                    Matter.Body.translate(this.body, { x: 0, y: this.height/32 });
                     this.cannonOffsetX = 0;
                     this.cannonOffsetY = -this.height/2 - 5;
                 } else { // plank
+                    // Plank blocks need a slight adjustment to align better
+                    Matter.Body.translate(this.body, { x: 0, y: this.height/24 });
                     this.cannonOffsetX = this.width/4;
                     this.cannonOffsetY = -this.height/2 - 5;
                 }
@@ -197,20 +214,21 @@ export default class TowerBlock {
     
     getFriction() {
         // Different materials have different friction
-        // All values doubled to make friction 2x stronger
+        // All values increased to make blocks less slippery and more stable
         switch (this.material) {
-            case 'stone': return 0.8;  // Doubled from 0.4
-            case 'metal': return 0.4;  // Doubled from 0.2
-            default: return 0.6;       // Doubled from 0.3 (wood)
+            case 'stone': return 11.2;  // Increased from 0.8
+            case 'metal': return 10.7;  // Increased from 0.4
+            default: return 10.0;       // Increased from 0.6 (wood)
         }
     }
     
     getRestitution() {
         // Different materials have different "bounciness"
+        // Reduced bounciness for more stability
         switch (this.material) {
-            case 'stone': return 0.1;
-            case 'metal': return 0.3;
-            default: return 0.2; // wood
+            case 'stone': return 0.01; // Decreased from 0.1
+            case 'metal': return 0.015; // Decreased from 0.3
+            default: return 0.01;       // Decreased from 0.2 (wood)
         }
     }
     

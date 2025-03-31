@@ -10,15 +10,21 @@ export default class Physics {
             // Enable gravity (increased for better gameplay)
             gravity: { x: 0, y: 1.2 },
             // Better precision for stacking and collisions
-            positionIterations: 8,
-            velocityIterations: 8
+            positionIterations: 10,
+            velocityIterations: 10
         });
         
         // Create a world
         this.world = this.engine.world;
         
-        // Disable sleeping for more reliable physics
-        this.world.sleeping = false;
+        // Enable sleeping for better performance and stability
+        // Objects that come to rest will "sleep" and use less CPU
+        this.world.sleeping = true;
+        
+        // Set sleep properties directly on the Matter.js engine
+        // This fixes the "Cannot set properties of undefined (setting 'x')" error
+        this.engine.timing.timeScale = 1;
+        this.engine.sleepThreshold = 15; // Default is 60
         
         // Collision tracking
         this.collisions = [];
@@ -74,7 +80,14 @@ export default class Physics {
     }
     
     createRectangle(x, y, width, height, options = {}) {
-        return Matter.Bodies.rectangle(x, y, width, height, options);
+        // Apply default options for rectangles if not specified
+        const defaultOptions = {
+            frictionStatic: 0.7,
+            friction: 0.6,
+            frictionAir: 0.01,
+            ...options
+        };
+        return Matter.Bodies.rectangle(x, y, width, height, defaultOptions);
     }
     
     createCircle(x, y, radius, options = {}) {
@@ -107,15 +120,19 @@ export default class Physics {
         // Reset engine if needed
         this.engine = Matter.Engine.create({
             gravity: { x: 0, y: 1.2 },
-            positionIterations: 8,
-            velocityIterations: 8
+            positionIterations: 10,
+            velocityIterations: 10
         });
         
         // Get the new world
         this.world = this.engine.world;
         
-        // Disable sleeping for more reliable physics
-        this.world.sleeping = false;
+        // Enable sleeping for better performance and stability
+        this.world.sleeping = true;
+        
+        // Set sleep properties directly on the engine
+        this.engine.timing.timeScale = 1;
+        this.engine.sleepThreshold = 15; // Default is 60
         
         // Set up collision detection again
         Matter.Events.on(this.engine, 'collisionStart', (event) => {

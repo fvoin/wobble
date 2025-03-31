@@ -12,14 +12,14 @@ export default class ResourceManager {
         this.blockCosts = {
             plank: 5,    // Wide plank - basic block
             square: 10,  // Square block - medium cost
-            'L-shape': 15 // L-shaped block - most expensive
+            'L-shape': 10 // L-shaped block - most expensive
         };
         
         // Keep material costs for backward compatibility
         this.materialCosts = {
             wood: 5,
             stone: 10,
-            metal: 15
+            metal: 10
         };
     }
     

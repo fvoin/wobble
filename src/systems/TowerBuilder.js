@@ -22,9 +22,9 @@ export default class TowerBuilder {
         
         // Block types with different shapes
         this.blockTypes = [
-            { type: 'plank', blockType: 'plank', material: 'wood', durability: 100 },
+            { type: 'plank', blockType: 'plank', material: 'wood', durability: 150 },
             { type: 'square', blockType: 'square', material: 'stone', durability: 150 },
-            { type: 'L-shape', blockType: 'L-shape', material: 'metal', durability: 200 }
+            { type: 'L-shape', blockType: 'L-shape', material: 'metal', durability: 250 }
         ];
         
         // Message for insufficient energy

@@ -33,9 +33,9 @@ export default class EnemyManager {
         
         // Wave definitions - each wave has +1 enemy compared to previous
         this.waves = [
-            { enemies: 3, types: ['basic'], reward: { energy: 20, gold: 5 } },
-            { enemies: 4, types: ['basic', 'fast'], reward: { energy: 25, gold: 10 } },
-            { enemies: 5, types: ['basic', 'fast', 'heavy'], reward: { energy: 30, gold: 15 } }
+            { enemies: 3, types: ['balanced'], reward: { energy: 20, gold: 5 } },
+            { enemies: 4, types: ['balanced', 'fast'], reward: { energy: 25, gold: 10 } },
+            { enemies: 5, types: ['balanced', 'fast', 'heavy'], reward: { energy: 30, gold: 15 } }
         ];
         
         // Get the canvas dimensions - fallback to reasonable defaults if not available
@@ -191,7 +191,7 @@ export default class EnemyManager {
                 // Each new wave has 1 more enemy than the last defined wave
                 enemies: lastWave.enemies + (this.currentWave - this.waves.length + 1),
                 // Use all available enemy types for advanced waves
-                types: ['basic', 'fast', 'heavy', 'flying'].filter(type => lastWave.types.includes(type) || Math.random() > 0.5),
+                types: ['balanced', 'fast', 'heavy'].filter(type => lastWave.types.includes(type) || Math.random() > 0.5),
                 // Increase rewards
                 reward: {
                     energy: lastWave.reward.energy + 5,
@@ -201,7 +201,7 @@ export default class EnemyManager {
             
             // Ensure at least one enemy type
             if (newWave.types.length === 0) {
-                newWave.types = ['basic'];
+                newWave.types = ['balanced'];
             }
             
             console.log(`Creating advanced wave ${this.currentWave + 1} with ${newWave.enemies} enemies and types: ${newWave.types.join(', ')}`);
@@ -244,13 +244,13 @@ export default class EnemyManager {
             
             // For advanced waves, determine which enemy types to use
             // This needs to be consistent with what's defined in startWave()
-            enemyTypes = ['basic', 'fast', 'heavy', 'flying'].filter(type => 
+            enemyTypes = ['balanced', 'fast', 'heavy'].filter(type => 
                 lastWave.types.includes(type) || Math.random() > 0.5
             );
             
             // Ensure at least one enemy type
             if (enemyTypes.length === 0) {
-                enemyTypes = ['basic'];
+                enemyTypes = ['balanced'];
             }
             
             // Randomly choose an enemy type from available types
@@ -329,7 +329,8 @@ export default class EnemyManager {
         
         // Draw all enemies
         this.enemies.forEach(enemy => {
-            renderer.drawEnemy(enemy);
+            // Use the enemy's own render method instead of the renderer's drawEnemy
+            enemy.render(renderer);
         });
         
         // Draw wave number prominently
@@ -353,7 +354,9 @@ export default class EnemyManager {
     renderHome(renderer) {
         // Draw a simple house to represent player's home
         const x = this.homePosition.x;
-        const y = this.homePosition.y;
+        // Modified Y position to sit directly on the ground
+        const groundLevel = this.groundLevel;
+        const y = groundLevel; // Move house down so it sits on ground
         
         // House body
         renderer.ctx.fillStyle = '#8B4513'; // Brown color for house

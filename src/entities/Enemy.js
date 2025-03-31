@@ -1,11 +1,21 @@
 export default class Enemy {
-    constructor(x, y, type = 'basic', physics) {
+    constructor(x, y, type = 'balanced', physics) {
         this.x = x;
         this.y = y;
         this.type = type;
         
         // Set properties based on enemy type
         this.setPropertiesByType();
+        
+        // Animation properties
+        this.animationTime = 0;
+        this.walkSpeed = 1.0; // Animation speed multiplier
+        
+        // Robot parts colors - will be set based on type
+        this.bodyColor = '#666666';
+        this.headColor = '#888888';
+        this.limbColor = '#444444';
+        this.eyeColor = '#ff0000';
         
         // Create physics body if provided
         if (physics) {
@@ -14,50 +24,69 @@ export default class Enemy {
     }
     
     setPropertiesByType() {
-        // Default properties
+        // Default properties for balanced enemy
         this.width = 30;
         this.height = 30;
         this.radius = 15;
         this.shape = 'circle';
-        this.speed = 20; // Halved from 50 to make enemy 2x slower
-        this.maxHealth = 57; // Reduced by 25% from 76
-        this.health = 57; // Reduced by 25% from 76
+        this.speed = 15; // Movement speed
+        this.pushForce = 0.01; // New property - how hard enemy pushes blocks (separate from speed)
+        this.maxHealth = 120; // Doubled from 60
+        this.health = 120; // Doubled from 60
         this.damage = 10;
         this.reward = 5;
-        this.energyReward = 3; // Base energy reward for basic enemy
+        this.energyReward = 3;
         
-        // Adjust based on type
+        // Set specific properties based on type
         switch (this.type) {
             case 'fast':
-                this.width = 50;
-                this.height = 50;
+                // Small, fast and weak enemy
+                this.width = 20;
+                this.height = 20;
                 this.radius = 10;
-                this.speed = 25; // Halved from 80 to make enemy 2x slower
-                this.maxHealth = 35; // Reduced by 25% from 46
-                this.health = 35; // Reduced by 25% from 46
-                this.damage = 5;
-                this.energyReward = 2; // Less energy for fast enemy (easier to kill)
+                this.speed = 20; // Faster movement
+                this.pushForce = 0.01; // Lower pushing force
+                this.maxHealth = 70; // Doubled from 35
+                this.health = 70; // Doubled from 35
+                this.damage = 5; // Lower damage
+                this.energyReward = 2;
+                // Fast robot colors - lighter/scout-like
+                this.bodyColor = '#88a1b3'; // Light blue-gray
+                this.headColor = '#a7c0d1';
+                this.limbColor = '#667d8d';
+                this.eyeColor = '#29d6ff'; // Blue eyes
+                // Animation speed faster
+                this.walkSpeed = 1.5;
                 break;
+                
             case 'heavy':
+                // Slow, strong enemy
                 this.width = 40;
                 this.height = 40;
                 this.radius = 20;
-                this.speed = 15; // Halved from 30 to make enemy 2x slower
-                this.maxHealth = 113; // Reduced by 25% from 150
-                this.health = 113; // Reduced by 25% from 150
-                this.damage = 20;
-                this.energyReward = 5; // More energy for heavy enemy (harder to kill)
+                this.speed = 10; // Slower movement
+                this.pushForce = 0.05; // Higher pushing force
+                this.maxHealth = 400; // Doubled from 156
+                this.health = 400; // Doubled from 156
+                this.damage = 15; // Higher damage
+                this.energyReward = 5;
+                // Heavy robot colors - darker/armored
+                this.bodyColor = '#6a4f31'; // Brown/rust
+                this.headColor = '#7e5d39';
+                this.limbColor = '#523d26';
+                this.eyeColor = '#ff5a00'; // Orange eyes
+                // Animation speed slower
+                this.walkSpeed = 0.7;
                 break;
-            case 'flying':
-                this.width = 25;
-                this.height = 25;
-                this.radius = 12;
-                this.speed = 20; // Halved from 60 to make enemy 2x slower
-                this.maxHealth = 45; // Reduced by 25% from 60
-                this.health = 45; // Reduced by 25% from 60
-                this.damage = 8;
-                this.flying = true;
-                this.energyReward = 4; // Medium energy for flying enemy
+                
+            case 'balanced':
+            default:
+                // Balanced enemy - uses default properties
+                // Balanced robot colors - neutral
+                this.bodyColor = '#666666'; // Gray
+                this.headColor = '#888888';
+                this.limbColor = '#444444';
+                this.eyeColor = '#ff0000'; // Red eyes
                 break;
         }
     }
@@ -67,15 +96,14 @@ export default class Enemy {
         if (this.shape === 'circle') {
             this.body = Matter.Bodies.circle(this.x, this.y, this.radius, {
                 label: 'enemy',
-                density: 0.002, // Light
-                friction: 0.1, // Increased friction to prevent sliding
+                density: 0.0002, // Light - reduced by 10x from 0.002
+                friction: 0.1,
                 restitution: 0.2,
-                frictionAir: 0.01, // Add air friction to slow down
+                frictionAir: 0.01,
                 collisionFilter: {
                     category: 0x0002, // Enemy category
                     mask: 0xFFFFFFFF // Collide with everything
                 },
-                // Add extra collision properties
                 plugin: {
                     attractors: []
                 }
@@ -83,10 +111,10 @@ export default class Enemy {
         } else {
             this.body = Matter.Bodies.rectangle(this.x, this.y, this.width, this.height, {
                 label: 'enemy',
-                density: 0.002,
-                friction: 0.1, // Increased friction
+                density: 0.0002, // Light - reduced by 10x from 0.002
+                friction: 0.1,
                 restitution: 0.2,
-                frictionAir: 0.01, // Add air friction to slow down
+                frictionAir: 0.01,
                 collisionFilter: {
                     category: 0x0002, // Enemy category
                     mask: 0xFFFFFFFF // Collide with everything
@@ -106,6 +134,9 @@ export default class Enemy {
     
     update(deltaTime, towerBlocks) {
         if (!this.body) return;
+        
+        // Update animation time
+        this.animationTime += deltaTime * this.walkSpeed;
         
         // Update position from physics body
         this.x = this.body.position.x;
@@ -140,65 +171,298 @@ export default class Enemy {
         this.attackNearbyBlocks(towerBlocks);
     }
     
-    moveTowardHome(deltaTime, homePosition) {
-        if (!homePosition || !this.body) {
-            // Fallback to moving left if no home position
-            this.moveLeft(deltaTime);
-            return;
+    // Drawing method for component-based robot
+    render(renderer) {
+        if (!this.body) return;
+        
+        const ctx = renderer.ctx;
+        ctx.save();
+        
+        // Position at physics body
+        ctx.translate(this.x, this.y);
+        
+        // Draw based on movement direction
+        const isMovingLeft = this.body.velocity.x < 0;
+        if (isMovingLeft) {
+            ctx.scale(-1, 1); // Flip horizontally if moving left
         }
         
-        // Get current position
-        const currentPos = this.body.position;
+        // Calculate animation values
+        const legAngle = Math.sin(this.animationTime * 5) * 0.3;
+        const armAngle = Math.sin(this.animationTime * 5 + Math.PI) * 0.2;
         
-        // Calculate direction vector to home
+        // Calculate bob height based on type
+        let bobHeight = Math.sin(this.animationTime * 10) * 2;
+        
+        // Special jumping motion for fast robot
+        if (this.type === 'fast') {
+            // Make the fast robot jump as it moves
+            const jumpHeight = Math.abs(Math.sin(this.animationTime * 6));
+            bobHeight = jumpHeight * 8; // Exaggerated jump height
+        }
+        
+        // Size multiplier based on enemy type
+        const sizeMultiplier = this.radius / 15; // Normalize based on balanced enemy size
+        
+        // DRAW ROBOT BASED ON TYPE
+        if (this.type === 'fast') {
+            // ---- FAST ROBOT (SCOUT) DESIGN ----
+            // Thinner legs
+            ctx.fillStyle = this.limbColor;
+            
+            // Left leg
+            ctx.save();
+            ctx.translate(-7 * sizeMultiplier, 5 * sizeMultiplier);
+            // During jump, legs are tucked up more
+            const fastLegAngle = legAngle * 1.2 + (bobHeight * 0.02);
+            ctx.rotate(fastLegAngle);
+            ctx.fillRect(-2 * sizeMultiplier, 0, 4 * sizeMultiplier, 15 * sizeMultiplier);
+            ctx.restore();
+            
+            // Right leg
+            ctx.save();
+            ctx.translate(7 * sizeMultiplier, 5 * sizeMultiplier);
+            ctx.rotate(-fastLegAngle);
+            ctx.fillRect(-2 * sizeMultiplier, 0, 4 * sizeMultiplier, 15 * sizeMultiplier);
+            ctx.restore();
+            
+            // Streamlined body
+            ctx.fillStyle = this.bodyColor;
+            // Smaller, more triangular body
+            ctx.beginPath();
+            ctx.moveTo(-8 * sizeMultiplier, -12 * sizeMultiplier + bobHeight);
+            ctx.lineTo(8 * sizeMultiplier, -12 * sizeMultiplier + bobHeight);
+            ctx.lineTo(10 * sizeMultiplier, -2 * sizeMultiplier + bobHeight);
+            ctx.lineTo(8 * sizeMultiplier, 8 * sizeMultiplier + bobHeight);
+            ctx.lineTo(-8 * sizeMultiplier, 8 * sizeMultiplier + bobHeight);
+            ctx.lineTo(-10 * sizeMultiplier, -2 * sizeMultiplier + bobHeight);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Sleeker arms
+            ctx.fillStyle = this.limbColor;
+            
+            // Left arm
+            ctx.save();
+            ctx.translate(-9 * sizeMultiplier, -6 * sizeMultiplier + bobHeight);
+            ctx.rotate(armAngle * 1.2); // More arm movement
+            ctx.fillRect(-4 * sizeMultiplier, 0, 4 * sizeMultiplier, 10 * sizeMultiplier);
+            ctx.restore();
+            
+            // Right arm
+            ctx.save();
+            ctx.translate(9 * sizeMultiplier, -6 * sizeMultiplier + bobHeight);
+            ctx.rotate(-armAngle * 1.2);
+            ctx.fillRect(0, 0, 4 * sizeMultiplier, 10 * sizeMultiplier);
+            ctx.restore();
+            
+            // Sleek head with visor
+            ctx.fillStyle = this.headColor;
+            // Pointed head
+            ctx.beginPath();
+            ctx.moveTo(-7 * sizeMultiplier, -22 * sizeMultiplier + bobHeight);
+            ctx.lineTo(7 * sizeMultiplier, -22 * sizeMultiplier + bobHeight);
+            ctx.lineTo(5 * sizeMultiplier, -12 * sizeMultiplier + bobHeight);
+            ctx.lineTo(-5 * sizeMultiplier, -12 * sizeMultiplier + bobHeight);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Visor instead of eyes
+            ctx.fillStyle = this.eyeColor;
+            ctx.fillRect(-6 * sizeMultiplier, -20 * sizeMultiplier + bobHeight, 
+                         12 * sizeMultiplier, 2 * sizeMultiplier);
+        }
+        else if (this.type === 'heavy') {
+            // ---- HEAVY ROBOT DESIGN ----
+            // Thicker legs
+            ctx.fillStyle = this.limbColor;
+            
+            // Left leg
+            ctx.save();
+            ctx.translate(-9 * sizeMultiplier, 5 * sizeMultiplier);
+            ctx.rotate(legAngle * 0.7); // Less leg movement for heavy
+            ctx.fillRect(-4 * sizeMultiplier, 0, 8 * sizeMultiplier, 15 * sizeMultiplier);
+            ctx.restore();
+            
+            // Right leg
+            ctx.save();
+            ctx.translate(9 * sizeMultiplier, 5 * sizeMultiplier);
+            ctx.rotate(-legAngle * 0.7);
+            ctx.fillRect(-4 * sizeMultiplier, 0, 8 * sizeMultiplier, 15 * sizeMultiplier);
+            ctx.restore();
+            
+            // Bulkier body
+            ctx.fillStyle = this.bodyColor;
+            // Draw main body
+            ctx.fillRect(-12 * sizeMultiplier, -18 * sizeMultiplier + bobHeight, 
+                        24 * sizeMultiplier, 23 * sizeMultiplier);
+            
+            // Add armor plates
+            ctx.fillStyle = this.headColor; // Use head color for armor plates
+            // Shoulder plates
+            ctx.fillRect(-14 * sizeMultiplier, -18 * sizeMultiplier + bobHeight, 
+                        28 * sizeMultiplier, 5 * sizeMultiplier);
+            // Chest plate
+            ctx.fillRect(-10 * sizeMultiplier, -13 * sizeMultiplier + bobHeight, 
+                        20 * sizeMultiplier, 10 * sizeMultiplier);
+            
+            // Heavy arms
+            ctx.fillStyle = this.limbColor;
+            
+            // Left arm
+            ctx.save();
+            ctx.translate(-12 * sizeMultiplier, -10 * sizeMultiplier + bobHeight);
+            ctx.rotate(armAngle * 0.6); // Less arm movement
+            ctx.fillRect(-6 * sizeMultiplier, 0, 6 * sizeMultiplier, 14 * sizeMultiplier);
+            ctx.restore();
+            
+            // Right arm
+            ctx.save();
+            ctx.translate(12 * sizeMultiplier, -10 * sizeMultiplier + bobHeight);
+            ctx.rotate(-armAngle * 0.6);
+            ctx.fillRect(0, 0, 6 * sizeMultiplier, 14 * sizeMultiplier);
+            ctx.restore();
+            
+            // Head with helmet
+            ctx.fillStyle = this.headColor;
+            // Helmet-like head
+            ctx.beginPath();
+            ctx.moveTo(-10 * sizeMultiplier, -28 * sizeMultiplier + bobHeight);
+            ctx.lineTo(10 * sizeMultiplier, -28 * sizeMultiplier + bobHeight);
+            ctx.lineTo(12 * sizeMultiplier, -23 * sizeMultiplier + bobHeight);
+            ctx.lineTo(10 * sizeMultiplier, -18 * sizeMultiplier + bobHeight);
+            ctx.lineTo(-10 * sizeMultiplier, -18 * sizeMultiplier + bobHeight);
+            ctx.lineTo(-12 * sizeMultiplier, -23 * sizeMultiplier + bobHeight);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Eyes in a more menacing pattern
+            ctx.fillStyle = this.eyeColor;
+            // Two narrow eyes
+            ctx.fillRect(-7 * sizeMultiplier, -25 * sizeMultiplier + bobHeight, 
+                         5 * sizeMultiplier, 2 * sizeMultiplier);
+            ctx.fillRect(2 * sizeMultiplier, -25 * sizeMultiplier + bobHeight, 
+                         5 * sizeMultiplier, 2 * sizeMultiplier);
+        }
+        else {
+            // ---- BALANCED ROBOT (DEFAULT) DESIGN ----
+            // Draw legs
+            ctx.fillStyle = this.limbColor;
+            
+            // Left leg
+            ctx.save();
+            ctx.translate(-8 * sizeMultiplier, 5 * sizeMultiplier);
+            ctx.rotate(legAngle);
+            ctx.fillRect(-3 * sizeMultiplier, 0, 6 * sizeMultiplier, 15 * sizeMultiplier);
+            ctx.restore();
+            
+            // Right leg
+            ctx.save();
+            ctx.translate(8 * sizeMultiplier, 5 * sizeMultiplier);
+            ctx.rotate(-legAngle);
+            ctx.fillRect(-3 * sizeMultiplier, 0, 6 * sizeMultiplier, 15 * sizeMultiplier);
+            ctx.restore();
+            
+            // Draw body
+            ctx.fillStyle = this.bodyColor;
+            ctx.fillRect(-10 * sizeMultiplier, -15 * sizeMultiplier + bobHeight, 20 * sizeMultiplier, 20 * sizeMultiplier);
+            
+            // Draw arms
+            ctx.fillStyle = this.limbColor;
+            
+            // Left arm
+            ctx.save();
+            ctx.translate(-10 * sizeMultiplier, -5 * sizeMultiplier + bobHeight);
+            ctx.rotate(armAngle);
+            ctx.fillRect(-5 * sizeMultiplier, 0, 5 * sizeMultiplier, 12 * sizeMultiplier);
+            ctx.restore();
+            
+            // Right arm
+            ctx.save();
+            ctx.translate(10 * sizeMultiplier, -5 * sizeMultiplier + bobHeight);
+            ctx.rotate(-armAngle);
+            ctx.fillRect(0, 0, 5 * sizeMultiplier, 12 * sizeMultiplier);
+            ctx.restore();
+            
+            // Draw head
+            ctx.fillStyle = this.headColor;
+            ctx.fillRect(-8 * sizeMultiplier, -25 * sizeMultiplier + bobHeight, 16 * sizeMultiplier, 12 * sizeMultiplier);
+            
+            // Draw eyes
+            ctx.fillStyle = this.eyeColor;
+            // Adjust eye position based on enemy type
+            const eyeOffset = 3 * sizeMultiplier;
+            const eyeSize = 3 * sizeMultiplier;
+            ctx.fillRect(-eyeOffset, -22 * sizeMultiplier + bobHeight, eyeSize, eyeSize);
+            ctx.fillRect(eyeOffset - eyeSize, -22 * sizeMultiplier + bobHeight, eyeSize, eyeSize);
+        }
+        
+        ctx.restore();
+        
+        // Draw a fixed health bar at the top of the enemy (not affected by rotation)
+        this.drawHealthBar(renderer);
+    }
+    
+    // Draw a stable health bar that doesn't flash or flicker
+    drawHealthBar(renderer) {
+        if (!this.body || this.health >= this.maxHealth) return;
+        
+        const ctx = renderer.ctx;
+        const barWidth = this.radius * 2.5;
+        const barHeight = 4;
+        const healthPercentage = this.health / this.maxHealth;
+        
+        // Position above the enemy
+        const x = this.body.position.x;
+        const y = this.body.position.y - this.radius - 15;
+        
+        ctx.save();
+        
+        // Draw background (darker shadow)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(x - barWidth/2 - 1, y - 1, barWidth + 2, barHeight + 2);
+        
+        // Draw background
+        ctx.fillStyle = '#444';
+        ctx.fillRect(x - barWidth/2, y, barWidth, barHeight);
+        
+        // Determine health color based on percentage
+        if (healthPercentage > 0.6) {
+            ctx.fillStyle = '#2ecc71'; // Green
+        } else if (healthPercentage > 0.3) {
+            ctx.fillStyle = '#f39c12'; // Orange/yellow
+        } else {
+            ctx.fillStyle = '#e74c3c'; // Red
+        }
+        
+        // Draw health fill with slight padding
+        ctx.fillRect(x - barWidth/2 + 1, y + 1, (barWidth - 2) * healthPercentage, barHeight - 2);
+        
+        ctx.restore();
+    }
+
+    moveTowardHome(deltaTime, homePosition) {
+        if (!this.body || !homePosition) return;
+        
+        const currentPos = this.body.position;
         const dx = homePosition.x - currentPos.x;
         const dy = homePosition.y - currentPos.y;
-        
-        // Calculate distance to target
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Check if enemy is "stuck" (very small movement)
-        // Store previous position if not already stored
-        if (!this.prevPosition) {
-            this.prevPosition = { x: currentPos.x, y: currentPos.y };
-            this.stuckCounter = 0;
-            this.lastMoveTime = Date.now();
-        } else {
-            // Check time elapsed since last movement check
-            const currentTime = Date.now();
-            const timeDiff = (currentTime - this.lastMoveTime) / 1000; // in seconds
-            
-            if (timeDiff > 0.5) { // Check every half second
-                // Calculate movement since last check
-                const movementDist = Math.sqrt(
-                    Math.pow(currentPos.x - this.prevPosition.x, 2) +
-                    Math.pow(currentPos.y - this.prevPosition.y, 2)
-                );
-                
-                // If barely moving, increment the stuck counter
-                if (movementDist < 2 && distance > 50) { // Not at target but barely moving
-                    this.stuckCounter++;
-                } else {
-                    this.stuckCounter = 0; // Reset if moving normally
-                }
-                
-                // Update previous position and timestamp
-                this.prevPosition = { x: currentPos.x, y: currentPos.y };
-                this.lastMoveTime = currentTime;
-            }
-        }
+        // Only move if not already at target
+        if (distance < 5) return;
         
-        // Apply "unstuck" boost if needed
-        const isStuck = this.stuckCounter > 2; // Stuck for more than 2 checks
+        // Normalize direction vector
+        const normalizedDx = dx / distance;
+        const normalizedDy = dy / distance;
         
-        // Normalize the vector
-        const length = Math.max(0.0001, distance); // Avoid division by zero
-        const normalizedDx = dx / length;
-        const normalizedDy = dy / length;
+        // Initial force multiplier based on distance from target
+        let forceMultiplier = 0.002; // Base force multiplier
         
-        // Calculate force multiplier - stronger when closer, to overcome friction
-        // Increased base value to compensate for halved speed values
-        let forceMultiplier = 0.02; // Increased from 0.015 to compensate for lower speed
+        // Check if enemy is stuck
+        const speed = Math.sqrt(this.body.velocity.x * this.body.velocity.x + 
+                            this.body.velocity.y * this.body.velocity.y);
+        const isStuck = speed < 0.5 && distance > 20;
         
         // Increase force if stuck
         if (isStuck) {
@@ -209,26 +473,22 @@ export default class Enemy {
                 x: this.body.velocity.x + (Math.random() - 0.5) * 2,
                 y: this.body.velocity.y - 1 // Slight upward boost
             });
-            
-            console.log("Applying unstuck force to enemy");
         }
         
-        // Scale force by distance but with reduced scaling to prevent erratic movement
+        // Scale force by distance but with reduced scaling
         if (distance < 200) {
-            // Reduced from (1 + (200 - distance) / 100) to prevent excessive force at close range
-            forceMultiplier *= (1 + (200 - distance) / 200); // Up to 2x stronger when close (instead of 3x)
+            forceMultiplier *= (1 + (200 - distance) / 200); // Up to 2x stronger when close
         }
         
         // Vertical force depends on position relative to target
-        // Stronger upward force, weaker downward force
         const verticalFactor = currentPos.y > homePosition.y ? 0.01 : 0.001;
         
         // Apply force toward home, with enhanced horizontal movement
-        // Add a maximum cap to deltaTime to prevent huge force spikes when FPS drops
         const cappedDeltaTime = Math.min(deltaTime, 0.05);
         const force = {
-            x: normalizedDx * this.speed * cappedDeltaTime * forceMultiplier,
-            y: normalizedDy * this.speed * cappedDeltaTime * verticalFactor
+            // Use both speed (for movement) and pushForce (for block interaction)
+            x: normalizedDx * this.speed * cappedDeltaTime * forceMultiplier * (this.pushForce / 0.1),
+            y: normalizedDy * this.speed * cappedDeltaTime * verticalFactor * (this.pushForce / 0.1)
         };
         
         // Apply the force at the center of the body
@@ -265,12 +525,12 @@ export default class Enemy {
     }
     
     moveLeft(deltaTime) {
-        // Legacy method - just moves left (toward tower)
         // Cap deltaTime to prevent large jumps
         const cappedDeltaTime = Math.min(deltaTime, 0.05);
         
         const force = {
-            x: -this.speed * cappedDeltaTime * 0.01,
+            // Use pushForce property to determine how hard the enemy pushes
+            x: -this.speed * cappedDeltaTime * (this.pushForce / 100), // Scale force by pushForce
             y: 0
         };
         
@@ -284,9 +544,9 @@ export default class Enemy {
     limitVelocity() {
         if (!this.body) return;
         
-        // Change from speed-based to fixed maximum velocity
-        // This ensures consistent limits regardless of enemy type's speed value
-        const maxVelocity = 3.0; // Fixed max velocity instead of this.speed / 15
+        // Use speed to determine maximum velocity - this allows fast enemies to move quickly
+        // without pushing blocks harder
+        const maxVelocity = this.speed / 6; // Scale max velocity based on speed
         const velocity = this.body.velocity;
         
         // Create a new velocity object with limited values
@@ -357,7 +617,6 @@ export default class Enemy {
     
     getEnergyReward() {
         // Return the energy reward for defeating this enemy
-        // Add error handling in case energyReward isn't defined
         return this.energyReward || 3; // Default to 3 if not set
     }
     

@@ -12,12 +12,6 @@ export default class Renderer {
                 metal: '#C0C0C0'
             },
             cannon: '#333333',
-            enemies: {
-                basic: '#FF0000',
-                fast: '#FF8000',
-                heavy: '#8B0000',
-                flying: '#FFC0CB'
-            },
             projectile: '#FFFF00',
             ui: {
                 energy: '#00FFFF',
@@ -176,47 +170,6 @@ export default class Renderer {
         this.ctx.strokeStyle = '#000';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(x - barWidth/2, y, barWidth, barHeight);
-    }
-    
-    drawEnemy(enemy) {
-        this.ctx.save();
-        
-        // Position from physics body
-        this.ctx.translate(enemy.body.position.x, enemy.body.position.y);
-        
-        // Set color based on enemy type
-        this.ctx.fillStyle = this.colors.enemies[enemy.type] || this.colors.enemies.basic;
-        
-        // Draw the enemy based on its shape
-        if (enemy.shape === 'circle') {
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.stroke();
-        } else {
-            // Draw rectangular enemy
-            this.ctx.fillRect(-enemy.width / 2, -enemy.height / 2, enemy.width, enemy.height);
-            this.ctx.strokeRect(-enemy.width / 2, -enemy.height / 2, enemy.width, enemy.height);
-        }
-        
-        this.ctx.restore();
-        
-        // Draw health bar without rotation
-        this.drawFixedHealthBar(enemy);
-    }
-    
-    drawHealthBar(entity) {
-        const barWidth = entity.width || entity.radius * 2;
-        const barHeight = 5;
-        const healthPercentage = entity.health / entity.maxHealth;
-        
-        // Background
-        this.ctx.fillStyle = '#333';
-        this.ctx.fillRect(-barWidth / 2, -entity.height / 2 - 10, barWidth, barHeight);
-        
-        // Health fill
-        this.ctx.fillStyle = healthPercentage > 0.5 ? '#00FF00' : healthPercentage > 0.25 ? '#FFFF00' : '#FF0000';
-        this.ctx.fillRect(-barWidth / 2, -entity.height / 2 - 10, barWidth * healthPercentage, barHeight);
     }
     
     drawRope(x, y, length, angle) {

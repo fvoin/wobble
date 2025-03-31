@@ -85,17 +85,18 @@ export default class Game {
             // Create a static ground rectangle directly with Matter.js
             const ground = Matter.Bodies.rectangle(
                 groundX,
-                groundY,
+                groundY, 
                 groundWidth,
-                groundHeight,
-                { 
-                    isStatic: true, 
+                groundHeight, 
+                {
+                    isStatic: true,
                     label: 'ground',
-                    friction: 0.5,     // Higher friction to prevent sliding
-                    restitution: 0.1,  // Low restitution (bounciness)
+                    friction: 0.8,     // Increased from 0.5 for better grip
+                    frictionStatic: 0.9, // Added static friction to prevent initial sliding
+                    restitution: 0.05,  // Reduced from 0.1 for less bounce
                     collisionFilter: {
                         category: 0x0001,
-                        mask: 0xFFFFFFFF
+                        mask: 0xFFFFFFFF // Collides with everything
                     }
                 }
             );
@@ -106,6 +107,7 @@ export default class Game {
             // Store ground body reference
             this.groundBody = ground;
             
+            console.log('Ground created at y:', this.groundInfo.top);
             return ground;
             
         } catch (error) {
